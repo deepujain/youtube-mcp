@@ -1,16 +1,28 @@
-# YouTube Connector for Meta Muse
+# YouTube MCP Connector
 
-An MCP server (streamable HTTP) that connects Muse to the **YouTube Data API v3**:
-search videos, read subscriptions and playlists, build a *"catch me up"*
-digest of recent uploads, and manage playlists — with every write gated behind
-an explicit approval step.
+An MCP server (streamable HTTP) connecting any MCP-compatible client to the
+**YouTube Data API v3**: search videos, read subscriptions and playlists,
+build a *"catch me up"* digest of recent uploads, and manage playlists — with
+every write gated behind an explicit approval step.
+
+## Works with
+
+This is a standard [Model Context Protocol](https://modelcontextprotocol.io/)
+server — nothing in it is tied to any single assistant. It works with any
+MCP-compatible client speaking streamable HTTP, including:
+
+- **Meta Muse** — via the connector directory (the primary distribution target)
+- **Claude / Claude Code** (Anthropic)
+- **ChatGPT** (OpenAI)
+- **Cursor**, **Windsurf**, **Cline**, and other MCP-capable coding assistants
+- Any custom agent built on an MCP SDK (Python, TypeScript, …)
 
 ## How it works
 
-Muse connects to this server's streamable-HTTP endpoint (`/mcp`) with its own
-MCP client. Credentials are **never hard-coded**: the server reads
-`YOUTUBE_API_KEY` / `YOUTUBE_OAUTH_TOKEN` from the environment, and in
-production Muse's secure credential flow supplies them at connect time (the
+Any MCP client connects to this server's streamable-HTTP endpoint (`/mcp`).
+Credentials are **never hard-coded**: the server reads
+`YOUTUBE_API_KEY` / `YOUTUBE_OAUTH_TOKEN` from the environment — when hosted
+for Muse, its secure credential flow supplies them at connect time (the
 agent itself only ever holds a surrogate token).
 
 **Auth split** (mirrors the YouTube API itself):
@@ -26,8 +38,8 @@ agent itself only ever holds a surrogate token).
 return a `pending_confirmation` payload with a single-use, expiring token
 (default 600 s). The agent surfaces the action description to the user; on
 approval it calls `confirm_action` with the token, which executes exactly
-once. `cancel_action` discards a pending action. This maps 1:1 onto Muse's
-approval cards.
+once. `cancel_action` discards a pending action. This maps 1:1 onto the
+approval-card UX in clients like Muse.
 
 **Known API limitation:** YouTube's Data API cannot read or modify the
 *native* Watch Later playlist (support removed August 2016; the API returns

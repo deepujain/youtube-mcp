@@ -49,9 +49,10 @@ has no local state: pending write-approvals live in memory and expire in
 After deploy, the endpoint Muse connects to is:
 
 ```
-https://<your-host>/mcp
+https://youtube.1xaispark.com/mcp
 ```
 
+(The eBay connector follows the same pattern: `https://ebay.1xaispark.com/mcp`.)
 That URL goes into the Meta connector submission form as the hosted MCP
 endpoint, and on the 1xaispark.com/connectors listing page.
 

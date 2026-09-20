@@ -1,60 +1,63 @@
 # Deploying the YouTube connector MCP server
 
-The connector is a stateless HTTP service. Muse (and any MCP client) talks to
-it at `https://<your-host>/mcp` (streamable HTTP). `GET /healthz` is an
-unauthenticated liveness probe for the load balancer / ECS health check.
+The connector runs as a third process inside the existing Spark ECS task,
+exactly like the messaging service: `start.sh` launches
+`python -m youtube_mcp.server` (port 8000) with the same restart-loop pattern.
+Muse (and any MCP client) talks to it at `https://youtube.1xaispark.com/mcp`
+(streamable HTTP). `GET /healthz` is an unauthenticated liveness probe for the
+ALB target-group health check.
 
-## 1. Secrets
+**Cost: $0 extra.** Same task, same ALB, no new service. The only new AWS
+pieces are a target group + host-based listener rule + one Route53 record,
+all on infrastructure already in place.
 
-| Variable | Required | Notes |
-|---|---|---|
-| `YOUTUBE_API_KEY` | yes | API key restricted to YouTube Data API v3 (Google Cloud project `spark-e2e54`). Inject via AWS Secrets Manager / ECS `secrets`, never in the image or repo. |
-| `YOUTUBE_OAUTH_TOKEN` | no (dev only) | Leave unset in production. Per-user OAuth tokens are supplied by the connector platform's credential flow at connect time; a server-wide token would act as every user at once. Private tools return a helpful "complete the OAuth flow" error when no token is present. |
+## 1. What the Spark repo changes contain
 
-`deploy/.env.example` documents every variable the server reads.
+- `Dockerfile`: new `youtube-mcp` stage pip-installs the connector from the
+  private `deepujain/youtube-mcp` repo into `/app/mcp-deps` (BuildKit secret
+  `github_token`, never baked into the image); runner stage adds `python3`
+  and copies `/app/mcp-deps`.
+- `start.sh`: launches the MCP server with `YOUTUBE_HOST=0.0.0.0`
+  (the ALB reaches the task ENI IP, not localhost),
+  `PYTHONPATH=/app/mcp-deps`, restart-on-crash loop, and SIGTERM handling.
 
-## 2. Build & push (ECR)
+## 2. Build
+
+The connector install needs a GitHub token with read access to the private
+`deepujain/youtube-mcp` repo, passed as a BuildKit secret (add to `deploy.sh`):
 
 ```bash
-AWS_REGION=us-west-2          # or your region
-AWS_ACCOUNT_ID=<account-id>
-ECR=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-
-aws ecr create-repository --repository-name youtube-mcp --region $AWS_REGION || true
-aws ecr get-login-password --region $AWS_REGION \
-  | docker login --username AWS --password-stdin $ECR
-
-docker build -t youtube-mcp:0.1.0 .
-docker tag youtube-mcp:0.1.0 $ECR/youtube-mcp:0.1.0
-docker push $ECR/youtube-mcp:0.1.0
+DOCKER_BUILDKIT=1 docker build \
+  --secret id=github_token,src=$HOME/.github-token \
+  -t $ECR/spark:$TAG .
 ```
 
-## 3. Run (ECS Fargate sketch)
+## 3. One-time AWS setup (console or CLI)
 
-- Task: 0.25 vCPU / 0.5 GB, one container, port 8000, desired count 1.
-  (Traffic is tiny; scale only if p95 latency degrades.)
-- Environment: `YOUTUBE_HOST=0.0.0.0`, `YOUTUBE_PORT=8000`;
-  `YOUTUBE_API_KEY` from Secrets Manager.
-- ALB: HTTPS listener (ACM cert) → target group on port 8000 with
-  health check path `/healthz` expecting HTTP 200.
-- Security group: ALB → task on 8000 only; task egress to
-  `https://www.googleapis.com` (443).
+1. **Secret:** `YOUTUBE_API_KEY` (restricted to YouTube Data API v3, project
+   `spark-e2e54`) in AWS Secrets Manager.
+2. **Task definition** (`spark-task` revision): add container port mapping
+   `8000/tcp`; add the secret as `YOUTUBE_API_KEY` env var. No CPU/memory
+   bump needed — the server idles near zero.
+3. **Target group:** port 8000, health check path `/healthz` expecting
+   HTTP 200, registered against the `spark-web` ECS service tasks.
+4. **ALB listener rule:** host `youtube.1xaispark.com` → the new target group
+   (port 8000).
+5. **Route53:** A/alias record `youtube.1xaispark.com` → the ALB.
 
-Any equivalent (single small VM, Cloud Run, App Runner) works — the server
-has no local state: pending write-approvals live in memory and expire in
-10 minutes by default.
+Security group: the task already allows ALB → task; ensure the rule covers
+port 8000 (or all task ports).
 
 ## 4. Public URL contract
-
-After deploy, the endpoint Muse connects to is:
 
 ```
 https://youtube.1xaispark.com/mcp
 ```
 
-(The eBay connector follows the same pattern: `https://ebay.1xaispark.com/mcp`.)
 That URL goes into the Meta connector submission form as the hosted MCP
-endpoint, and on the 1xaispark.com/connectors listing page.
+endpoint, and on the 1xaispark.com/connectors listing page. Treat it as
+permanent — the hostname is the contract with users; the process behind it
+can move freely later without breaking anyone.
 
 ## 5. Operational notes
 
@@ -68,3 +71,7 @@ endpoint, and on the 1xaispark.com/connectors listing page.
   the sensitive `youtube.force-ssl` scope would require Google verification).
   In Testing mode each user must be added as a test user in the Cloud
   console until verification is pursued.
+- **Stripping out later:** revert the Dockerfile/`start.sh` edits, drop port
+  8000 + the secret from the task definition, delete the ALB rule and DNS
+  record. Pending write-approvals (in-memory, 10-min TTL) are the only thing
+  lost in a move — users just re-issue the action.

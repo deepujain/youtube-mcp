@@ -461,7 +461,7 @@ def add_to_playlist(
 
 
 def save_for_later(client: YouTubeClient, approvals: ApprovalStore, video_id: str) -> dict[str, Any]:
-    """Propose saving a video to your personal 'Watch Later (via Muse)' playlist.
+    """Propose saving a video to your personal 'Watch Later (via 1xAI)' playlist.
 
     NOTE: YouTube's Data API cannot read or modify the *native* Watch Later
     playlist (support removed August 2016 — the API returns

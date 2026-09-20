@@ -9,9 +9,9 @@ BASE_URL = "https://www.googleapis.com/youtube/v3"
 # YouTube's Data API cannot read or modify the native Watch Later playlist
 # (deprecated August 2016; playlistItems.list returns watchLaterNotAccessible).
 # save_for_later() therefore uses this user-owned playlist as the replacement.
-SAVE_FOR_LATER_PLAYLIST_TITLE = "Watch Later (via Muse)"
+SAVE_FOR_LATER_PLAYLIST_TITLE = "Watch Later (via 1xAI)"
 SAVE_FOR_LATER_PLAYLIST_DESCRIPTION = (
-    "Videos saved via the Muse YouTube connector. "
+    "Videos saved via the 1xAI YouTube connector. "
     "Note: YouTube's Data API does not allow third-party apps to read or "
     "modify the native Watch Later playlist, so this playlist acts as its replacement."
 )

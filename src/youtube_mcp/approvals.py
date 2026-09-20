@@ -2,7 +2,7 @@
 
 Write tools NEVER execute directly. They return a pending-confirmation payload
 carrying a single-use, expiring token. The agent surfaces the payload to the
-user (e.g. as a Muse approval card); on approval it calls ``confirm_action``
+user (e.g. as an approval card in their AI client); on approval it calls ``confirm_action``
 with the token, which executes the stored action exactly once. ``cancel_action``
 discards a pending action without executing it.
 """

@@ -1,13 +1,12 @@
-"""Muse YouTube connector — MCP server over streamable HTTP.
+"""YouTube MCP connector — MCP server over streamable HTTP.
 
 Run:
     python -m youtube_mcp.server
-(or ``youtube-mcp`` after install). Muse connects to
-``http://<host>:<port>/mcp`` with a streamable-HTTP MCP client.
+(or ``youtube-mcp`` after install). Point any streamable-HTTP MCP client at
+``http://<host>:<port>/mcp``.
 
 Credentials are never hard-coded: the server reads YOUTUBE_API_KEY /
-YOUTUBE_OAUTH_TOKEN from the environment, and Muse's own credential flow
-supplies them at connect time.
+YOUTUBE_OAUTH_TOKEN from the environment.
 """
 from __future__ import annotations
 
@@ -113,7 +112,7 @@ def add_to_playlist(playlist_id: str, video_id: str) -> dict:
 
 @mcp.tool(annotations=WRITE)
 def save_for_later(video_id: str) -> dict:
-    """Propose saving a video to the user's 'Watch Later (via Muse)' playlist.
+    """Propose saving a video to the user's 'Watch Later (via 1xAI)' playlist.
 
     NOTE: YouTube's API cannot touch the native Watch Later playlist, so this
     uses a personal playlist as the supported replacement (created on first use).

@@ -1,7 +1,7 @@
 [project]
 name = "youtube-mcp"
 version = "0.1.0"
-description = "Meta Muse connector for YouTube: MCP server (streamable HTTP) over YouTube Data API v3"
+description = "YouTube MCP server (streamable HTTP) over YouTube Data API v3"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

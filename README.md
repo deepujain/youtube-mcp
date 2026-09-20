@@ -8,12 +8,10 @@ every write gated behind an explicit approval step.
 ## Works with
 
 This is a standard [Model Context Protocol](https://modelcontextprotocol.io/)
-server — nothing in it is tied to any single assistant. It works with any
-MCP-compatible client speaking streamable HTTP, including:
+server — nothing in it is tied to any single assistant. Run it yourself
+(below) and point any MCP-compatible client at `http://127.0.0.1:8000/mcp`:
 
-- **Meta Muse** — via the connector directory (the primary distribution target)
-- **Claude / Claude Code** (Anthropic)
-- **ChatGPT** (OpenAI)
+- **Meta Muse**, **Claude / Claude Code** (Anthropic), **ChatGPT** (OpenAI)
 - **Cursor**, **Windsurf**, **Cline**, and other MCP-capable coding assistants
 - Any custom agent built on an MCP SDK (Python, TypeScript, …)
 
@@ -21,9 +19,8 @@ MCP-compatible client speaking streamable HTTP, including:
 
 Any MCP client connects to this server's streamable-HTTP endpoint (`/mcp`).
 Credentials are **never hard-coded**: the server reads
-`YOUTUBE_API_KEY` / `YOUTUBE_OAUTH_TOKEN` from the environment — when hosted
-for Muse, its secure credential flow supplies them at connect time (the
-agent itself only ever holds a surrogate token).
+`YOUTUBE_API_KEY` / `YOUTUBE_OAUTH_TOKEN` from the environment (your local
+`.env` file).
 
 **Auth split** (mirrors the YouTube API itself):
 
@@ -39,12 +36,12 @@ return a `pending_confirmation` payload with a single-use, expiring token
 (default 600 s). The agent surfaces the action description to the user; on
 approval it calls `confirm_action` with the token, which executes exactly
 once. `cancel_action` discards a pending action. This maps 1:1 onto the
-approval-card UX in clients like Muse.
+approval-card UX in MCP clients.
 
 **Known API limitation:** YouTube's Data API cannot read or modify the
 *native* Watch Later playlist (support removed August 2016; the API returns
 `watchLaterNotAccessible`). `save_for_later` therefore uses a user-owned
-playlist named **"Watch Later (via Muse)"** as the supported replacement,
+playlist named **"Watch Later (via 1xAI)"** as the supported replacement,
 creating it on first use.
 
 ## Setup
@@ -107,7 +104,7 @@ On `quotaExceeded` (HTTP 403) every tool returns a structured
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 cp .env.example .env   # then fill in your keys
 .venv/bin/python -m youtube_mcp.server
-# Muse connects to http://127.0.0.1:8000/mcp
+# Point your MCP client at http://127.0.0.1:8000/mcp
 ```
 
 ## Run the tests
@@ -141,10 +138,14 @@ tests/
   test_integration.py  # real API, reads only, skipped without credentials
 ```
 
-## Example prompts (for the Muse connector submission form)
+## Example prompts
 
 1. "Catch me up on my subscriptions from this week — what did I miss?"
 2. "Find me a video under 20 minutes that explains how sourdough starter works."
 3. "Save this video for later: https://www.youtube.com/watch?v=…"
 4. "What are the three most-viewed uploads from Marques Brownlee this month, and how long is each?"
 5. "Make a private playlist called 'Weekend cooking' and add the pasta video you found yesterday."
+
+## License
+
+MIT — see [LICENSE](LICENSE).

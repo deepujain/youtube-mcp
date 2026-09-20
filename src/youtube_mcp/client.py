@@ -11,6 +11,7 @@ without touching the network.
 """
 from __future__ import annotations
 
+import ssl
 from typing import Any, Literal
 
 import httpx
@@ -43,9 +44,16 @@ class YouTubeClient:
         # (which may be absent, wrong, or unparseable on the host). An egress
         # proxy can still be set explicitly via YOUTUBE_HTTP(S)_PROXY.
         proxy = settings.http_proxy or settings.https_proxy or None
+        # A custom CA bundle extends the default trust store for environments
+        # whose egress proxy MITMs TLS (set via YOUTUBE_CA_BUNDLE). Passed as
+        # an explicit context because trust_env=False would otherwise make
+        # httpx ignore SSL_CERT_FILE and use certifi's bundle alone.
+        verify: Any = True
+        if settings.ca_bundle:
+            verify = ssl.create_default_context(cafile=settings.ca_bundle)
         self._http = httpx.Client(
             base_url=BASE_URL, transport=transport, timeout=30.0,
-            trust_env=False, proxy=proxy,
+            trust_env=False, proxy=proxy, verify=verify,
         )
 
     # -- capability probes (fail fast with a helpful message) ----------------

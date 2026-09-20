@@ -36,6 +36,9 @@ def _client() -> YouTubeClient:
         Settings(
             api_key=os.getenv("YOUTUBE_API_KEY"),
             oauth_token=os.getenv("YOUTUBE_OAUTH_TOKEN"),
+            http_proxy=os.getenv("YOUTUBE_HTTP_PROXY"),
+            https_proxy=os.getenv("YOUTUBE_HTTPS_PROXY"),
+            ca_bundle=os.getenv("YOUTUBE_CA_BUNDLE"),
         )
     )
 

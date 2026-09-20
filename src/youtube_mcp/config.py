@@ -28,6 +28,10 @@ class Settings:
     approval_ttl_seconds: int = 600
     http_proxy: str | None = None
     https_proxy: str | None = None
+    # Path to a PEM CA bundle, for environments whose egress proxy MITMs TLS
+    # with a private CA (the sandbox proxy does). Extends, never replaces,
+    # the default trust store.
+    ca_bundle: str | None = None
 
     @classmethod
     def from_env(cls, env: dict | None = None) -> "Settings":
@@ -47,4 +51,5 @@ class Settings:
             approval_ttl_seconds=_int("YOUTUBE_APPROVAL_TTL_SECONDS", 600),
             http_proxy=src.get("YOUTUBE_HTTP_PROXY") or None,
             https_proxy=src.get("YOUTUBE_HTTPS_PROXY") or None,
+            ca_bundle=src.get("YOUTUBE_CA_BUNDLE") or None,
         )

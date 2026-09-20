@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+tests/
+.git/
+.gitignore
+assets/
+legal/
+.env
+.env.*
+*.md
+!README.md

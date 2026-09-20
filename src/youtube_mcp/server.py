@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from . import tools as yt
 from .approvals import ApprovalStore
@@ -39,6 +41,12 @@ mcp = FastMCP(
 
 READ = ToolAnnotations(readOnlyHint=True)
 WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False)
+
+
+@mcp.custom_route("/healthz", methods=["GET"])
+async def healthz(request: Request) -> JSONResponse:
+    """Unauthenticated liveness probe for load balancers / ECS health checks."""
+    return JSONResponse({"status": "ok", "service": "youtube-connector"})
 
 
 @mcp.tool(annotations=READ)

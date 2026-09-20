@@ -1,5 +1,5 @@
 [project]
-name = "youtube-mcp"
+name = "youtube-mcp-dj"
 version = "0.1.1"
 description = "YouTube MCP server (streamable HTTP) over YouTube Data API v3"
 readme = "README.md"

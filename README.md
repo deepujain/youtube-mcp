@@ -102,6 +102,13 @@ On `quotaExceeded` (HTTP 403) every tool returns a structured
 
 ## Run the server
 
+From PyPI:
+
+```bash
+pip install youtube-mcp-dj
+youtube-mcp   # console entry point; configure via env vars (see .env.example)
+```
+
 Local Python:
 
 ```bash

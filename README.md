@@ -70,6 +70,8 @@ these are manual steps in your own Google account:
    - `YOUTUBE_APPROVAL_TTL_SECONDS` — approval window (default `600`)
    - `YOUTUBE_HTTP_PROXY` / `YOUTUBE_HTTPS_PROXY` — only if your host needs an
      explicit egress proxy (ambient proxy env vars are intentionally ignored)
+   - `YOUTUBE_CA_BUNDLE` — path to a PEM CA bundle, only if your egress proxy
+     re-signs TLS with a private CA (it extends the default trust store)
 
 No billing account is needed: the API is free within the daily quota below.
 
@@ -100,6 +102,8 @@ On `quotaExceeded` (HTTP 403) every tool returns a structured
 
 ## Run the server
 
+Local Python:
+
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 cp .env.example .env   # then fill in your keys
@@ -107,18 +111,59 @@ cp .env.example .env   # then fill in your keys
 # Point your MCP client at http://127.0.0.1:8000/mcp
 ```
 
+Or Docker (the image bakes in a `/healthz` liveness probe):
+
+```bash
+cp .env.example .env   # then fill in your keys
+docker build -t youtube-mcp .
+docker run --env-file .env -p 8000:8000 youtube-mcp
+```
+
+## Connect a client
+
+Point any MCP-compatible client at `http://127.0.0.1:8000/mcp`
+(streamable HTTP). Claude Code, Cursor, Windsurf, Cline, and ChatGPT's
+developer mode all accept a remote MCP server URL in their MCP/integration
+settings — paste the URL there. See the
+[MCP documentation](https://modelcontextprotocol.io/) for your client's exact
+config shape.
+
 ## Run the tests
 
 ```bash
-.venv/bin/python -m pytest -q            # unit tests (mocked HTTP): 71 tests
-.venv/bin/python -m pytest -q -m integration \
-  # integration tests against the real API (reads only, ~110 units):
-YOUTUBE_API_KEY=... YOUTUBE_OAUTH_TOKEN=... .venv/bin/python -m pytest -m integration
+.venv/bin/python -m pytest -q   # unit tests (mocked HTTP): 71 tests
+
+# Integration tests hit the real API (reads only, ~110 units).
+# Skipped automatically when credentials are absent.
+YOUTUBE_API_KEY=... YOUTUBE_OAUTH_TOKEN=... .venv/bin/python -m pytest -q -m integration
 ```
 
 Integration tests are skipped automatically when credentials are absent.
 Write-path tests run against mocks only — real writes are exercised manually
 through the propose → approve → `confirm_action` flow.
+
+## Troubleshooting
+
+Learned the hard way while building this:
+
+- **`channelNotFound` on `my_subscriptions` / `my_playlists` / `catch_me_up`:**
+  the Google account that granted OAuth has no YouTube channel. Create one at
+  youtube.com (any name works), then re-run the OAuth flow.
+- **`quotaExceeded` (HTTP 403) immediately:** run OAuth against your *own*
+  Cloud project. Shared/demo projects (e.g. Google's OAuth 2.0 Playground
+  project) can already have their quota exhausted, and there is nothing you
+  can do about it. Your own project gets a fresh 10,000 units/day.
+- **Auth errors right after pasting a token:** make sure you pasted the
+  *full* access token — a truncated paste fails every call. You can
+  sanity-check a token's scopes at
+  `https://oauth2.googleapis.com/tokeninfo?access_token=TOKEN`.
+- **Refresh token stops working after ~7 days:** your OAuth consent screen is
+  still in *Testing* mode. Publish it to *Production* (step 4 of Setup).
+- **Behind a corporate egress proxy:** the server ignores ambient
+  `HTTP_PROXY` / `HTTPS_PROXY` on purpose (they break inside containers). Set
+  `YOUTUBE_HTTP_PROXY` / `YOUTUBE_HTTPS_PROXY` explicitly; if the proxy
+  re-signs TLS with a private CA, point `YOUTUBE_CA_BUNDLE` at your PEM
+  bundle.
 
 ## Project layout
 
